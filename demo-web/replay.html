@@ -1,0 +1,40 @@
+<!doctype html><html lang="vi"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Sentinel · Xem lại video KO</title><style>
+*{box-sizing:border-box}body{margin:0;background:#0c1018;color:#edf4fc;font:16px/1.5 'Segoe UI',sans-serif}
+main{max-width:1240px;margin:auto;padding:32px 5vw}header,nav,.bar{display:flex;align-items:center;gap:14px;flex-wrap:wrap}header{justify-content:space-between;border-bottom:1px solid #334153;padding-bottom:20px}
+h1{font-size:28px;margin:0}h2{font-size:18px;margin:0 0 16px}section,article{background:#151e2b;border:1px solid #2d394b;border-radius:12px;padding:20px}section{margin-top:20px}.grid{display:grid;grid-template-columns:3fr 2fr;gap:18px}button,select{background:#223145;color:#edf4fc;border:1px solid #45576e;border-radius:7px;padding:9px 13px;font:inherit}button{cursor:pointer}button[aria-pressed=true]{color:#7ee8c0;border-color:#65ceaa}video{width:100%;background:#090c12;margin:14px 0;border-radius:8px}p,small{color:#b3c1d1}article{margin:10px 0;padding:14px}output{color:#85e5c0}dialog{width:min(560px,95vw);background:#151e2b;color:white;border:1px solid #45576e;border-radius:12px}dialog::backdrop{background:#000a}[hidden]{display:none!important}@media(max-width:760px){.grid{grid-template-columns:1fr;gap:0}}
+</style><main><header><h1>Sentinel · Giám sát video</h1><nav><button id="today" aria-pressed="true">Nhật ký hôm nay</button><button id="saved" aria-pressed="false">Log đã lưu</button></nav></header>
+<div class="grid"><section><h2>Camera demo · Phát lại</h2><label>Video <select id="clip"></select></label><video id="player" controls playsinline></video><output id="score"></output><p>Kết quả từ các cửa sổ video đã chạy qua model V2.</p></section>
+<section><h2 id="heading">Nhật ký hôm nay</h2><div id="logs"></div></section></div>
+<dialog id="review"><h2 id="name"></h2><video id="recording" controls playsinline></video><p id="detail"></p><div class="bar"><button id="keep">Lưu log</button><button id="discard">Không lưu</button><button id="close">Đóng</button></div></dialog></main>
+<script>
+const el=id=>document.getElementById(id), key='sentinel-v2-replay-1';
+const date=()=>new Date().toLocaleDateString('sv-SE');
+let clips={}, events=JSON.parse(localStorage.getItem(key)||'[]'), archive=false, selected;
+function persist(){localStorage.setItem(key,JSON.stringify(events));render()}
+function label(d){return ({fight:'Đánh nhau',suspected:'Nghi ngờ đánh nhau',normal:'Bình thường'})[d]}
+function percent(n){return (n*100).toLocaleString('vi-VN',{maximumFractionDigits:1})+'%'}
+function render(){
+ const rows=events.filter(e=>archive?e.state==='saved':e.day===date());
+ const list=el('logs');list.replaceChildren();el('heading').textContent=archive?'Log đã lưu':'Nhật ký hôm nay';
+ if(!rows.length)list.textContent=archive?'Chưa có log đã lưu.':'Phát một video để theo dõi cảnh báo.';
+ for(const e of rows){const a=document.createElement('article'),b=document.createElement('b'),p=document.createElement('p'),btn=document.createElement('button');
+ b.textContent=label(e.decision);p.textContent=[e.clip,e.day,e.time,percent(e.score),({saved:'Đã lưu',discarded:'Không lưu',pending:'Chờ xem lại'})[e.state]].join(' · ');
+ btn.textContent='Xem lại';btn.onclick=()=>{selected=e;el('name').textContent=e.clip;el('recording').src='/video/'+e.clip+'#t='+e.start+','+e.end;el('detail').textContent=label(e.decision)+' · '+e.start.toFixed(2)+'–'+e.end.toFixed(2)+' giây · '+percent(e.score);el('review').showModal()};a.append(b,p,btn);list.append(a)}
+}
+function update(record){
+ const clip=el('clip').value,t=el('player').currentTime;
+ const hit=(clips[clip]||[]).filter(w=>w.start<=t&&t<w.end).sort((a,b)=>b.score-a.score)[0];
+ el('score').textContent=hit?label(hit.decision)+' · '+percent(hit.score):'Chưa có cửa sổ dự đoán tại thời điểm này';
+ if(!record||!hit||hit.decision==='normal')return;
+ const day=date(), old=events.find(e=>e.day===day&&e.clip===clip);
+ if(!old){events.unshift({...hit,clip,day,time:new Date().toLocaleTimeString('vi-VN'),state:'pending'});persist()}
+ else if(hit.score>old.score){Object.assign(old,hit);persist()}
+}
+function load(){el('player').src='/video/'+el('clip').value;update(false)}
+el('clip').onchange=load;el('player').onplaying=()=>update(true);el('player').ontimeupdate=()=>update(!el('player').paused);
+for(const id of ['today','saved'])el(id).onclick=()=>{archive=id==='saved';el('today').setAttribute('aria-pressed',!archive);el('saved').setAttribute('aria-pressed',archive);render()};
+for(const id of ['keep','discard'])el(id).onclick=()=>{selected.state=id==='keep'?'saved':'discarded';persist();el('review').close()};
+el('close').onclick=()=>el('review').close();el('review').onclose=()=>el('recording').pause();
+fetch('/api/results').then(r=>r.json()).then(data=>{clips=data.clips;for(const name of Object.keys(clips))el('clip').add(new Option(name,name));load();render()}).catch(()=>el('score').textContent='Không đọc được kết quả V2.');
+</script></html>

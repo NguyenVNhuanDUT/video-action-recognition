@@ -1,0 +1,26 @@
+<!doctype html><html lang="vi"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Giám sát V2</title>
+<style>*{box-sizing:border-box}body{background:#101722;color:#f0f5fc;font:15px/1.55 system-ui;margin:0;padding:16px}header,.bar{display:flex;align-items:center;gap:9px;flex-wrap:wrap}header{justify-content:space-between}h1,h2{margin:0;font-size:20px}h2{font-size:17px}.grid{display:grid;grid-template-columns:3fr 2fr;gap:12px;margin-top:14px}section,dialog{background:#192333;border:1px solid #344157;border-radius:12px;padding:14px;color:inherit}video,img{display:block;width:100%;max-height:350px;object-fit:contain;background:#090e16;margin:10px 0}button,select{background:#25354a;color:white;border:1px solid #465970;padding:7px;border-radius:6px}button{cursor:pointer}button[aria-pressed=true]{color:#89e8bd;border-color:#89e8bd}article{border-bottom:1px solid #344157;padding:10px 0}small{display:block;color:#bbcada}dialog{width:min(560px,95vw)}[hidden]{display:none!important}@media(max-width:700px){.grid{grid-template-columns:1fr}}</style>
+<header><h1>Giám sát video V2</h1><div class="bar"><button id="today">Nhật ký hôm nay</button><button id="saved">Log đã lưu</button></div></header>
+<div class="grid"><section><div class="bar"><label>Nguồn <select id="source"></select></label><button id="start">Bật webcam</button><button id="stop">Dừng ghi</button></div><video controls id="player"></video><img id="live" alt="Webcam trực tiếp" hidden><output id="status"></output></section><section><h2 id="heading"></h2><div id="logs"></div></section></div>
+<dialog id="review"><h2 id="title"></h2><video controls id="cut"></video><p id="range"></p><button id="keep">Lưu log</button> <button id="discard">Không lưu</button> <button id="close">Đóng</button></dialog>
+<script>
+const el=id=>document.getElementById(id);let data,archive=false,current,signature;
+const label=k=>({fight:'Đánh nhau',suspected:'Nghi ngờ đánh nhau',normal:'Bình thường'})[k];
+let timelines={};
+fetch('/timeline').then(r=>r.json()).then(t=>timelines=t);
+const playback=document.createElement('p');el('player').after(playback);
+function videoScore(){const key=el('source').value,t=el('player').currentTime;
+ const best=(timelines[key]||[]).filter(w=>w.start_s<=t&&t<w.end_s).sort((a,b)=>b.p_action-a.p_action)[0];
+ playback.textContent=best?label(best.decision)+' · '+(best.p_action*100).toFixed(1)+'%':'';}
+el('player').ontimeupdate=videoScore;
+async function post(path){const r=await fetch('/'+path,{method:'POST'});if(!r.ok)throw Error('Không cập nhật được');await refresh()}
+function view(){el('player').hidden=el('source').value==='live';el('live').hidden=!el('player').hidden||!data.preview;if(!el('player').hidden)el('player').src='/source/'+el('source').value;else el('player').pause()}
+function render(){const now=new Date(),day=[now.getFullYear(),String(now.getMonth()+1).padStart(2,'0'),String(now.getDate()).padStart(2,'0')].join('-');
+const rows=data.events.filter(e=>archive?e.state==='saved':e.created.startsWith(day));el('heading').textContent=archive?'Log đã lưu':'Nhật ký hôm nay';el('today').setAttribute('aria-pressed',!archive);el('saved').setAttribute('aria-pressed',archive);
+const logs=el('logs');logs.replaceChildren();if(!rows.length)logs.textContent='Chưa có đoạn cảnh báo.';
+for(const e of rows){const a=document.createElement('article'),b=document.createElement('strong'),s=document.createElement('small'),btn=document.createElement('button');b.textContent=label(e.kind)+' · '+(e.score*100).toFixed(1)+'%';s.textContent=e.source+' · '+e.created.replace('T',' ')+' · '+({pending:'Chờ xem lại',saved:'Đã lưu',discarded:'Không lưu'})[e.state];btn.textContent='Xem đoạn đã cắt';btn.onclick=()=>{current=e;el('title').textContent=e.source;el('cut').src='/clip/'+e.id;el('range').textContent=e.start.toFixed(2)+'–'+e.end.toFixed(2)+' giây trong nguồn';el('review').showModal()};a.append(b,s,btn);logs.append(a)}}
+async function refresh(){try{data=await (await fetch('/api')).json();if(!el('source').length){for(const [id,n] of Object.entries(data.sources))el('source').add(new Option(n,id));el('source').add(new Option('Webcam 0','live'));view()}el('status').textContent=data.status;el('stop').disabled=!data.live;el('start').disabled=data.live;if(el('source').value==='live'){el('live').hidden=!data.preview;if(data.preview)el('live').src='/preview?t='+Date.now()}const sig=JSON.stringify(data.events);if(sig!==signature){signature=sig;render()}}catch{el('status').textContent='Hãy chạy lại ô giao diện để kết nối.'}}
+el('source').onchange=view;el('start').onclick=()=>{el('source').value='live';view();post('start')};el('stop').onclick=()=>post('stop');
+el('today').onclick=()=>{archive=false;render()};el('saved').onclick=()=>{archive=true;render()};el('close').onclick=()=>el('review').close();el('review').onclose=()=>el('cut').pause();
+for(const [id,state] of [['keep','saved'],['discard','discarded']])el(id).onclick=async()=>{await post(state+'/'+current.id);el('review').close()};refresh();setInterval(refresh,750);
+</script></html>

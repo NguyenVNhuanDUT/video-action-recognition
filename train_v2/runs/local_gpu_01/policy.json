@@ -1,0 +1,5 @@
+{
+  "action_threshold": 0.49999999999999994,
+  "touch_threshold": 1.0,
+  "contact_ready": false
+}

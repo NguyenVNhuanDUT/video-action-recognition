@@ -1,0 +1,7 @@
+scenario,sources,windows,normal,strikes,false_logs,false_fight,missed,review_strikes,fight_strikes,false_log_rate,strike_recall_including_review
+arm_overlap,1,2,2,0,0,0,0,0,0,0.0,
+base,272,287,143,144,2,0,2,142,0,0.013986013986013986,0.9861111111111112
+body_overlap,1,2,2,0,0,0,0,0,0,0.0,
+fast_strike,1,3,0,3,0,0,0,3,0,,1.0
+grappling,1,3,0,3,0,0,0,3,0,,1.0
+hand_gesture,1,2,2,0,0,0,0,0,0,0.0,

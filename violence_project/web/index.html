@@ -1,0 +1,77 @@
+<!doctype html><html lang="vi"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Sentinel · V1</title>
+<style>
+:root{color-scheme:dark;--bg:#0c1218;--surface:#151e26;--line:#2a3843;--text:#ecf3f5;--muted:#a6b8bf;--mint:#83e5c2}
+*{box-sizing:border-box}body{margin:0;color:var(--text);background:var(--bg);font:16px/1.5 "Segoe UI",system-ui,sans-serif}main,header>div{width:min(1580px,94%);margin:auto}header{background:#111a21;border-bottom:1px solid var(--line)}header>div,.bar,nav,.panelhead,.bottom,.eventhead{display:flex;align-items:center;gap:12px}header>div{min-height:70px;justify-content:space-between}.brand{font-size:23px;font-weight:720;letter-spacing:-1px}.brand i{display:inline-block;width:18px;height:21px;margin-right:10px;background:var(--mint);clip-path:polygon(0 12%,50% 0,100% 12%,100% 59%,50% 100%,0 59%);vertical-align:-2px}button,select{font:inherit;color:inherit;border:1px solid var(--line);background:#202c35;border-radius:8px;padding:8px 14px;cursor:pointer}button:focus-visible,select:focus-visible{outline:2px solid var(--mint);outline-offset:3px}button:disabled{opacity:.4;cursor:default}button:hover:enabled,select:hover{border-color:#78948f}nav button{background:transparent;border-color:transparent}nav button[aria-pressed=true]{color:var(--mint);background:#1b3330}
+h1{font-size:clamp(26px,3vw,40px);letter-spacing:-1.4px;margin:30px 0 20px}h2{font-size:19px;margin:0}.grid{display:grid;grid-template-columns:minmax(0,2.1fr) minmax(310px,1fr);gap:20px;align-items:start}section,dialog{border:1px solid var(--line);border-radius:16px;background:var(--surface);overflow:hidden}.panelhead,.bottom{padding:16px 20px;justify-content:space-between;flex-wrap:wrap}.stage{position:relative;background:#090e13;aspect-ratio:16/9;display:grid;place-items:center;color:var(--muted)}.stage>*{grid-area:1/1}.stage video,.stage img{width:100%;height:100%;object-fit:contain;position:absolute;inset:0}.bottom{min-height:72px}#start,#keep{background:var(--mint);color:#10382c;font-weight:650}output{font-weight:600}.bottom p{margin:0}#logs{max-height:70vh;overflow:auto;padding:0 20px 16px}article{padding:14px 0;border-top:1px solid var(--line)}.eventhead{justify-content:space-between}.eventhead strong{color:#ffab99}.pill{font-size:12px;background:#283843;border-radius:20px;padding:3px 10px;color:#d4e2e8}small{display:block;color:var(--muted);margin:5px 0 8px}article button{color:var(--mint);background:none;border:0;padding:0}dialog{width:min(600px,94vw);color:var(--text);padding:20px}dialog video{width:100%;max-height:50vh;background:#000;margin-top:15px}dialog::backdrop{background:#03070cc9}[hidden]{display:none!important}
+@media(max-width:880px){.grid{grid-template-columns:1fr}#logs{max-height:none}}@media(max-width:540px){header>div{align-items:flex-start;flex-direction:column;padding:14px 0;gap:6px}.panelhead,.bottom{padding:12px}.bar{flex-wrap:wrap}button,select{font-size:14px}.panelhead label{font-size:13px}h1{margin:20px 0 12px}}
+</style>
+<header><div><span class="brand"><i></i>Sentinel</span><nav><button id="today">Nhật ký hôm nay</button><button id="saved">Log đã lưu</button></nav></div></header>
+<main><h1>Giám sát camera · V1</h1><div class="grid"><section><div class="panelhead"><h2>Khung hình</h2><label>Nguồn <select id="source"></select></label></div>
+<div class="stage"><span id="empty">Camera đang tắt</span><video id="player" controls playsinline muted hidden></video><video id="direct" autoplay playsinline muted hidden></video><img id="live" alt="Webcam trực tiếp" hidden></div>
+<div class="bottom"><div><output id="status" role="status"></output><p id="playback"></p></div><div class="bar"><button id="start">Bật webcam</button><button id="stop" disabled>Dừng ghi</button></div></div></section>
+<section><div class="panelhead"><h2 id="heading">Nhật ký hôm nay</h2><span class="pill" id="count">0</span></div><div id="logs"></div></section></div></main>
+<dialog id="review"><h2 id="title"></h2><video muted playsinline controls id="cut"></video><p id="range"></p><div class="bar"><button id="keep">Lưu log</button><button id="discard">Không đánh nhau · Xóa đoạn</button><button id="close">Đóng</button></div></dialog>
+<script>
+const serverURL='http://127.0.0.1:8878/';
+if(location.origin !== new URL(serverURL).origin){
+ document.body.replaceChildren();
+ const link=document.createElement('a');link.href=serverURL;link.textContent='Mở dashboard có kết nối webcam';link.style.color='#89e8bd';document.body.append(link);
+ throw new Error('Mở dashboard từ server.');
+}
+const el=id=>document.getElementById(id);let data,archive=false,current,signature;
+const label=k=>({fight:'Đánh nhau',suspected:'Nghi ngờ đánh nhau',normal:'Không đánh nhau'})[k];
+let timelines={};
+fetch('/timeline').then(r=>r.json()).then(t=>timelines=t);
+const playback=el('playback');
+function videoScore(){const key=el('source').value,t=el('player').currentTime;
+ const best=(timelines[key]||[]).filter(w=>w.start_s<=t&&t<w.end_s).sort((a,b)=>b.p_action-a.p_action)[0];
+ playback.textContent=best?label(best.decision)+' · '+(best.p_action*100).toFixed(1)+'%':'';}
+el('player').ontimeupdate=videoScore;
+async function post(path){const r=await fetch('/'+path,{method:'POST'});if(!r.ok)throw Error('Không cập nhật được');await refresh()}
+function updateStage(){
+ const camera=el('source').value==='live';
+ input.hidden=!(camera && stream);
+ el('live').hidden=!(camera && !stream && data?.preview);
+ el('empty').hidden=!camera || !!stream || !!data?.preview;
+ playback.hidden=camera;
+}
+function view(){
+ const replay=el('source').value!=='live';
+ el('player').hidden=!replay;
+ if(replay)el('player').src='/source/'+el('source').value;
+ else el('player').pause();
+ updateStage();
+}
+function render(){const now=new Date(),day=[now.getFullYear(),String(now.getMonth()+1).padStart(2,'0'),String(now.getDate()).padStart(2,'0')].join('-');
+const rows=data.events.filter(e=>archive?e.state==='saved':e.created.startsWith(day) && e.source===(el('source').value==='live'?'Webcam 0':data.sources[el('source').value]));el('heading').textContent=archive?'Log đã lưu':'Nhật ký hôm nay';el('today').setAttribute('aria-pressed',!archive);el('saved').setAttribute('aria-pressed',archive);
+el('count').textContent=rows.length;const logs=el('logs');logs.replaceChildren();if(!rows.length)logs.textContent='Chưa có đoạn cảnh báo.';
+for(const e of rows){const a=document.createElement('article'),b=document.createElement('strong'),s=document.createElement('small'),btn=document.createElement('button');b.textContent=label(e.kind)+' · '+(e.score*100).toFixed(1)+'%';s.textContent=e.source+' · '+e.created.replace('T',' ')+' · '+({pending:'Chờ xem lại',saved:'Đã lưu',discarded:'Không lưu'})[e.state];btn.textContent='Xem đoạn đã cắt';btn.onclick=()=>{current=e;el('title').textContent=e.source;el('cut').src='/clip/'+e.id;el('range').textContent=e.start.toFixed(2)+'–'+e.end.toFixed(2)+' giây trong nguồn';el('review').showModal()};const head=document.createElement('div'),pill=document.createElement('span');head.className='eventhead';pill.className='pill';pill.textContent=({pending:'Chờ xem lại',saved:'Đã lưu',discarded:'Không lưu'})[e.state];s.textContent=e.source+' · '+e.created.replace('T',' ');head.append(b,pill);a.append(head,s,btn);logs.append(a)}}
+async function refresh(){try{data=await (await fetch('/api')).json();if(!el('source').length){for(const [id,n] of Object.entries(data.sources))el('source').add(new Option(n,id));el('source').add(new Option('Camera máy tính','live'));el('source').value='live';view()}el('status').textContent=camError || (data.status.startsWith('no_pair')?'Chưa phát hiện đủ 2 người':data.status.replace('suspected','Nghi ngờ đánh nhau').replace('fight','Đánh nhau').replace('normal','Không đánh nhau'));el('stop').disabled=!data.live;el('start').disabled=data.live||starting;updateStage();if(!el('live').hidden)el('live').src='/preview?t='+Date.now();const sig=JSON.stringify(data.events);if(sig!==signature){signature=sig;render()}}catch{el('status').textContent='Mất kết nối đến server giám sát.'}}
+let starting=false,stream=null,camError='',running=false;
+const input=el('direct'), canvas=document.createElement('canvas');
+input.muted=true;input.playsInline=true;canvas.width=640;canvas.height=360;
+function release(){running=false;if(stream)stream.getTracks().forEach(t=>t.stop());stream=null;input.srcObject=null;updateStage()}
+async function upload(){
+ while(running){
+  const started=performance.now();
+  canvas.getContext('2d').drawImage(input,0,0,640,360);
+  const blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/jpeg',.75));
+  if(!running)break;
+  const response=await fetch('/frame',{method:'POST',body:blob});
+  if(!response.ok && response.status!==429)throw Error('Luồng camera đã dừng');
+  await new Promise(resolve=>setTimeout(resolve,Math.max(0,62.5-(performance.now()-started))));
+ }
+}
+el('source').onchange=()=>{view();render()};
+el('start').onclick=async()=>{try{
+ if(starting||running)return;
+ starting=true;el('start').disabled=true;camError='Đang chờ trình duyệt cấp quyền camera…';el('status').textContent=camError;
+ if(!navigator.mediaDevices?.getUserMedia)throw Error('Hãy mở dashboard bằng Edge hoặc Chrome ở địa chỉ 127.0.0.1:8878.');
+ stream=await navigator.mediaDevices.getUserMedia({video:{width:{ideal:1280},height:{ideal:720},frameRate:{ideal:30,max:30}},audio:false});
+ camError='';input.srcObject=stream;await input.play();el('source').value='live';view();await post('start');running=true;await upload();
+}catch(e){camError=({NotAllowedError:'Quyền camera bị chặn. Mở quyền trang web cạnh thanh địa chỉ và cho phép Camera.',NotFoundError:'Trình duyệt không tìm thấy webcam. Kiểm tra webcam trong ứng dụng Camera của Windows.',NotReadableError:'Webcam chưa cấp được hình. Đóng ứng dụng đang dùng camera và kiểm tra công tắc camera trên máy.'})[e.name] || 'Camera: '+e.message;release();await refresh()}finally{starting=false;await refresh()}};
+el('stop').onclick=async()=>{release();await post('stop')};
+window.addEventListener('pagehide',release);
+el('today').onclick=()=>{archive=false;render()};el('saved').onclick=()=>{archive=true;render()};el('close').onclick=()=>el('review').close();el('review').onclose=()=>el('cut').pause();
+for(const [id,state] of [['keep','saved'],['discard','discarded']])el(id).onclick=async()=>{const video=el('cut');video.pause();video.removeAttribute('src');video.load();try{await post(state+'/'+current.id);el('review').close()}catch{el('range').textContent='Chưa cập nhật được. Hãy thử lại.'}};(async function poll(){await refresh();setTimeout(poll,800)})();
+</script></html>
