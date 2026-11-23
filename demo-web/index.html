@@ -4,32 +4,84 @@
 *{box-sizing:border-box}body{margin:0;color:var(--text);background:var(--bg);font:16px/1.5 "Segoe UI",system-ui,sans-serif}main,header>div{width:min(1580px,94%);margin:auto}header{background:#111a21;border-bottom:1px solid var(--line)}header>div,.bar,nav,.panelhead,.bottom,.eventhead{display:flex;align-items:center;gap:12px}header>div{min-height:70px;justify-content:space-between}.brand{font-size:23px;font-weight:720;letter-spacing:-1px}.brand i{display:inline-block;width:18px;height:21px;margin-right:10px;background:var(--mint);clip-path:polygon(0 12%,50% 0,100% 12%,100% 59%,50% 100%,0 59%);vertical-align:-2px}button,select{font:inherit;color:inherit;border:1px solid var(--line);background:#202c35;border-radius:8px;padding:8px 14px;cursor:pointer}button:focus-visible,select:focus-visible{outline:2px solid var(--mint);outline-offset:3px}button:disabled{opacity:.4;cursor:default}button:hover:enabled,select:hover{border-color:#78948f}nav button{background:transparent;border-color:transparent}nav button[aria-pressed=true]{color:var(--mint);background:#1b3330}
 h1{font-size:clamp(26px,3vw,40px);letter-spacing:-1.4px;margin:30px 0 20px}h2{font-size:19px;margin:0}.grid{display:grid;grid-template-columns:minmax(0,2.1fr) minmax(310px,1fr);gap:20px;align-items:start}section,dialog{border:1px solid var(--line);border-radius:16px;background:var(--surface);overflow:hidden}.panelhead,.bottom{padding:16px 20px;justify-content:space-between;flex-wrap:wrap}.stage{position:relative;background:#090e13;aspect-ratio:16/9;display:grid;place-items:center;color:var(--muted)}.stage>*{grid-area:1/1}.stage video,.stage img{width:100%;height:100%;object-fit:contain;position:absolute;inset:0}.bottom{min-height:72px}#start,#keep{background:var(--mint);color:#10382c;font-weight:650}output{font-weight:600}.bottom p{margin:0}#logs{max-height:70vh;overflow:auto;padding:0 20px 16px}article{padding:14px 0;border-top:1px solid var(--line)}.eventhead{justify-content:space-between}.eventhead strong{color:#ffab99}.pill{font-size:12px;background:#283843;border-radius:20px;padding:3px 10px;color:#d4e2e8}small{display:block;color:var(--muted);margin:5px 0 8px}article button{color:var(--mint);background:none;border:0;padding:0}dialog{width:min(600px,94vw);color:var(--text);padding:20px}dialog video{width:100%;max-height:50vh;background:#000;margin-top:15px}dialog::backdrop{background:#03070cc9}[hidden]{display:none!important}
 @media(max-width:880px){.grid{grid-template-columns:1fr}#logs{max-height:none}}@media(max-width:540px){header>div{align-items:flex-start;flex-direction:column;padding:14px 0;gap:6px}.panelhead,.bottom{padding:12px}.bar{flex-wrap:wrap}button,select{font-size:14px}.panelhead label{font-size:13px}h1{margin:20px 0 12px}}
+
+nav{flex-wrap:wrap}nav a{color:var(--muted);text-decoration:none;padding:8px 12px;border-radius:8px}
+nav a[aria-current="page"]{background:#1b3330;color:var(--mint)}
+#saved-logs,#source-stats{padding:0 20px 16px}
+.metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;margin-bottom:20px}
+.metric{padding:16px 20px}.metric strong{display:block;font-size:30px;color:var(--mint)}
+.stat-row{padding:12px 0;border-top:1px solid var(--line)}progress{width:100%;accent-color:var(--mint)}
+
+.stage.is-alert{outline:3px solid #ff756e;outline-offset:-3px}
+#alert-banner{z-index:1;align-self:start;justify-self:stretch;margin:12px;padding:10px 14px;border-radius:8px;background:#9a2928;color:#fff;font-weight:700;pointer-events:none}
+
+.chart-grid{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(240px,1fr);gap:16px;margin-bottom:16px}
+.week-chart{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px;padding:12px 20px 18px;text-align:center}
+.day-column{min-width:0;font-size:12px;color:var(--muted)}
+.bar-track{height:134px;display:flex;align-items:end;justify-content:center;background:repeating-linear-gradient(to top,transparent 0 calc(25% - 1px),var(--line) calc(25% - 1px) 25%)}
+.day-bar{width:min(60%,34px);background:var(--mint);border-radius:4px 4px 0 0}
+.day-column strong{color:var(--text);font-variant-numeric:tabular-nums}
+.status-chart{padding:12px 20px 18px}.status-stack{display:flex;height:18px;border-radius:12px;overflow:hidden;background:#293841}
+.status-legend{display:grid;gap:9px;margin:16px 0 0;padding:0;list-style:none}.status-legend li{display:flex;align-items:center;gap:8px}.status-legend strong{margin-left:auto}
+.swatch{width:10px;height:10px;border-radius:3px;flex:none}
+@media(max-width:720px){.chart-grid{grid-template-columns:1fr}}
+#giam-sat .stage{max-height:clamp(180px,calc(100dvh - 340px),660px);overflow:hidden}
+#giam-sat .bottom{gap:8px}
+@media(max-width:540px){#giam-sat .stage{max-height:clamp(140px,calc(100dvh - 350px),480px)}}
 </style>
-<header><div><span class="brand"><i></i>Sentinel</span><nav><button id="today">Nhật ký hôm nay</button><button id="saved">Log đã lưu</button></nav></div></header>
-<main><h1>Giám sát camera · V2</h1><div class="grid"><section><div class="panelhead"><h2>Khung hình</h2><label>Nguồn <select id="source"></select></label></div>
-<div class="stage"><span id="empty">Camera đang tắt</span><video id="player" controls playsinline muted hidden></video><video id="direct" autoplay playsinline muted hidden></video><img id="live" alt="Webcam trực tiếp" hidden></div>
+<header><div><span class="brand"><i></i>Sentinel</span><nav><a href="#giam-sat">Giám sát</a><a href="#log-da-luu">Log đã lưu</a><a href="#thong-ke">Thống kê</a></nav></div></header>
+<main><div id="giam-sat" data-page><h1>Giám sát camera · V2</h1><div class="grid"><section><div class="panelhead"><h2>Khung hình</h2><label>Nguồn <select id="source"></select></label></div>
+<div class="stage" id="stage"><div id="alert-banner" role="alert" hidden></div><span id="empty">Camera đang tắt</span><video id="player" controls playsinline muted hidden></video><video id="direct" autoplay playsinline muted hidden></video><img id="live" alt="Webcam trực tiếp" hidden></div>
 <div class="bottom"><div><output id="status" role="status"></output><p id="playback"></p></div><div class="bar"><button id="start">Bật webcam</button><button id="stop" disabled>Dừng ghi</button></div></div></section>
-<section><div class="panelhead"><h2 id="heading">Nhật ký hôm nay</h2><span class="pill" id="count">0</span></div><div id="logs"></div></section></div></main>
+<section><div class="panelhead"><h2 id="heading">Nhật ký hôm nay</h2><span class="pill" id="count">0</span></div><div id="logs"></div></section></div></div>
+<div id="log-da-luu" data-page hidden><h1>Log đã lưu</h1><section>
+<div class="panelhead"><h2>Danh sách clip đã lưu</h2><span class="pill" id="saved-count">0</span></div>
+<div id="saved-logs"></div></section></div>
+<div id="thong-ke" data-page hidden><h1>Thống kê cảnh báo</h1>
+<p>Số liệu từ nhật ký V2, gồm webcam và các video demo. Cảnh báo đã xóa không nằm trong thống kê.</p>
+<div class="metrics">
+<section class="metric"><span>Tổng cảnh báo</span><strong id="stat-total">–</strong></section>
+<section class="metric"><span>Hôm nay</span><strong id="stat-today">–</strong></section>
+<section class="metric"><span>Chờ xem lại</span><strong id="stat-pending">–</strong></section>
+<section class="metric"><span>Đã lưu</span><strong id="stat-saved">–</strong></section>
+</div>
+<div class="chart-grid">
+<section><div class="panelhead"><h2>Cảnh báo trong 7 ngày</h2></div><div id="week-chart" class="week-chart" role="group" aria-label="Số cảnh báo theo ngày"></div></section>
+<section><div class="panelhead"><h2>Trạng thái xử lý</h2></div><div class="status-chart"><div id="status-stack" class="status-stack" aria-hidden="true"></div><ul id="status-legend" class="status-legend"></ul></div></section>
+</div><section><div class="panelhead"><h2>Cảnh báo theo nguồn</h2></div><div id="source-stats"></div></section>
+</div></main>
 <dialog id="review"><h2 id="title"></h2><video muted playsinline controls id="cut"></video><p id="range"></p><div class="bar"><button id="keep">Lưu log</button><button id="discard">Không đánh nhau · Xóa đoạn</button><button id="close">Đóng</button></div></dialog>
 <script>
 const serverURL='http://127.0.0.1:8877/';
-if(location.origin !== new URL(serverURL).origin){
+if(location.protocol==='file:'){
  document.body.replaceChildren();
  const link=document.createElement('a');link.href=serverURL;link.textContent='Mở dashboard có kết nối webcam';link.style.color='#89e8bd';document.body.append(link);
  throw new Error('Mở dashboard từ server.');
 }
-const el=id=>document.getElementById(id);let data,archive=false,current,signature;
+const el=id=>document.getElementById(id);let data,current,signature;
 const label=k=>({fight:'Đánh nhau',suspected:'Nghi ngờ đánh nhau',normal:'Không đánh nhau'})[k];
 let timelines={};
 fetch('/timeline').then(r=>r.json()).then(t=>timelines=t);
 const playback=el('playback');
+function showAlert(kind){
+ const active=kind==='suspected'||kind==='fight';
+ const banner=el('alert-banner');
+ el('stage').classList.toggle('is-alert',active);
+ if(banner.hidden!==!active || (active && banner.dataset.kind!==kind)){
+  banner.dataset.kind=kind;
+  banner.textContent=active?'⚠ '+label(kind)+' · Hãy chú ý':'';banner.hidden=!active;
+ }
+}
 function videoScore(){const key=el('source').value,t=el('player').currentTime;
  const best=(timelines[key]||[]).filter(w=>w.start_s<=t&&t<w.end_s).sort((a,b)=>b.p_action-a.p_action)[0];
+ if(key!=='live')showAlert(el('player').ended?null:best?.decision);
  playback.textContent=best?label(best.decision)+' · '+(best.p_action*100).toFixed(1)+'%':'';}
 el('player').ontimeupdate=videoScore;
+el('player').onended=videoScore;
 async function post(path){const r=await fetch('/'+path,{method:'POST'});if(!r.ok)throw Error('Không cập nhật được');await refresh()}
 function updateStage(){
  const camera=el('source').value==='live';
+ if(camera)showAlert(data?.live?data.status.split(' · ')[0]:null);
  input.hidden=!(camera && stream);
  el('live').hidden=!(camera && !stream && data?.preview);
  el('empty').hidden=!camera || !!stream || !!data?.preview;
@@ -38,15 +90,84 @@ function updateStage(){
 function view(){
  const replay=el('source').value!=='live';
  el('player').hidden=!replay;
- if(replay)el('player').src='/source/'+el('source').value;
+ if(replay){showAlert(null);el('player').src='/source/'+el('source').value;}
  else el('player').pause();
  updateStage();
 }
-function render(){const now=new Date(),day=[now.getFullYear(),String(now.getMonth()+1).padStart(2,'0'),String(now.getDate()).padStart(2,'0')].join('-');
-const rows=data.events.filter(e=>archive?e.state==='saved':e.created.startsWith(day) && e.source===(el('source').value==='live'?'Webcam 0':data.sources[el('source').value]));el('heading').textContent=archive?'Log đã lưu':'Nhật ký hôm nay';el('today').setAttribute('aria-pressed',!archive);el('saved').setAttribute('aria-pressed',archive);
-el('count').textContent=rows.length;const logs=el('logs');logs.replaceChildren();if(!rows.length)logs.textContent='Chưa có đoạn cảnh báo.';
+function renderList(logs,rows,emptyMessage){
+logs.replaceChildren();if(!rows.length)logs.textContent=emptyMessage;
 for(const e of rows){const a=document.createElement('article'),b=document.createElement('strong'),s=document.createElement('small'),btn=document.createElement('button');b.textContent=label(e.kind)+' · '+(e.score*100).toFixed(1)+'%';s.textContent=e.source+' · '+e.created.replace('T',' ')+' · '+({pending:'Chờ xem lại',saved:'Đã lưu',discarded:'Không lưu'})[e.state];btn.textContent='Xem đoạn đã cắt';btn.onclick=()=>{current=e;el('title').textContent=e.source;el('cut').src='/clip/'+e.id;el('range').textContent=e.start.toFixed(2)+'–'+e.end.toFixed(2)+' giây trong nguồn';el('review').showModal()};const head=document.createElement('div'),pill=document.createElement('span');head.className='eventhead';pill.className='pill';pill.textContent=({pending:'Chờ xem lại',saved:'Đã lưu',discarded:'Không lưu'})[e.state];s.textContent=e.source+' · '+e.created.replace('T',' ');head.append(b,pill);a.append(head,s,btn);logs.append(a)}}
-async function refresh(){try{data=await (await fetch('/api')).json();if(!el('source').length){for(const [id,n] of Object.entries(data.sources))el('source').add(new Option(n,id));el('source').add(new Option('Camera máy tính','live'));el('source').value='live';view()}el('status').textContent=camError || (data.status.startsWith('no_pair')?'Chưa phát hiện đủ 2 người':data.status.replace('suspected','Nghi ngờ đánh nhau').replace('fight','Đánh nhau').replace('normal','Không đánh nhau'));el('stop').disabled=!data.live;el('start').disabled=data.live||starting;updateStage();if(!el('live').hidden)el('live').src='/preview?t='+Date.now();const sig=JSON.stringify(data.events);if(sig!==signature){signature=sig;render()}}catch{el('status').textContent='Mất kết nối đến server giám sát.'}}
+function renderCharts(events,now){
+ const days=Array.from({length:7},(_,i)=>{
+  const date=new Date(now.getFullYear(),now.getMonth(),now.getDate()-6+i);
+  const key=[date.getFullYear(),String(date.getMonth()+1).padStart(2,'0'),String(date.getDate()).padStart(2,'0')].join('-');
+  return {label:date.toLocaleDateString('vi-VN',{day:'2-digit',month:'2-digit'}),count:events.filter(e=>e.created.startsWith(key)).length};
+ });
+ const max=Math.max(1,...days.map(day=>day.count));
+ const week=el('week-chart');week.replaceChildren();
+ for(const day of days){
+  const column=document.createElement('div'), number=document.createElement('strong'), track=document.createElement('div'), bar=document.createElement('div'), label=document.createElement('span');
+  column.className='day-column';number.textContent=day.count;label.textContent=day.label;
+  track.className='bar-track';bar.className='day-bar';bar.style.height=(100*day.count/max)+'%';
+  track.setAttribute('aria-hidden','true');track.append(bar);column.append(number,track,label);week.append(column);
+ }
+ const stack=el('status-stack'), legend=el('status-legend');
+ stack.replaceChildren();legend.replaceChildren();
+ const statuses=[['Đã lưu','#83e5c2',events.filter(e=>e.state==='saved').length],
+                 ['Chờ xem lại','#ffcb79',events.filter(e=>e.state==='pending').length]];
+ statuses.push(['Khác','#92a3af',events.length-statuses[0][2]-statuses[1][2]]);
+ for(const [label,color,count] of statuses){
+  const part=document.createElement('span'), item=document.createElement('li'), swatch=document.createElement('span'), value=document.createElement('strong');
+  part.style.background=color;part.style.flexGrow=count;stack.append(part);
+  swatch.className='swatch';swatch.style.background=color;
+  value.textContent=count+' / '+events.length;item.append(swatch,label,value);legend.append(item);
+ }
+}
+function render(){
+ if(!data)return;
+ const now=new Date(), day=[now.getFullYear(),String(now.getMonth()+1).padStart(2,'0'),String(now.getDate()).padStart(2,'0')].join('-');
+ const events=data.events, today=events.filter(e=>e.created.startsWith(day));
+ const saved=events.filter(e=>e.state==='saved');
+ el('count').textContent=today.length;
+ el('saved-count').textContent=saved.length;
+ renderList(el('logs'),today,'Chưa có cảnh báo hôm nay.');
+ renderList(el('saved-logs'),saved,'Chưa có clip nào được lưu.');
+ el('stat-total').textContent=events.length;
+ el('stat-today').textContent=today.length;
+ el('stat-pending').textContent=events.filter(e=>e.state==='pending').length;
+ el('stat-saved').textContent=saved.length;
+ renderCharts(events,now);
+ const sources=new Map();
+ for(const e of events)sources.set(e.source,(sources.get(e.source)||0)+1);
+ const chart=el('source-stats');
+ chart.replaceChildren();
+ if(!sources.size)chart.textContent='Chưa có dữ liệu cảnh báo.';
+ for(const [name,count] of [...sources].sort((a,b)=>b[1]-a[1])){
+  const row=document.createElement('div'), text=document.createElement('div'), bar=document.createElement('progress');
+  row.className='stat-row';
+  text.textContent=name+' · '+count+' cảnh báo';
+  bar.value=count;bar.max=events.length;bar.setAttribute('aria-label',text.textContent);
+  row.append(text,bar);chart.append(row);
+ }
+}
+function navigate(){
+ const requested=location.hash.slice(1);
+ const page=['giam-sat','log-da-luu','thong-ke'].includes(requested)?requested:'giam-sat';
+ for(const panel of document.querySelectorAll('[data-page]'))panel.hidden=panel.id!==page;
+ for(const link of document.querySelectorAll('nav a')){
+  if(link.hash==='#'+page)link.setAttribute('aria-current','page');
+  else link.removeAttribute('aria-current');
+ }
+ if(page!=='giam-sat')el('player').pause();
+}
+window.addEventListener('hashchange',navigate);
+navigate();
+function cameraScoreText(status){
+ const parts=status.split(' · ');
+ if(parts.length!==2)return status;
+ return 'Điểm mô hình '+parts[1]+' · Ngưỡng 50%';
+}
+async function refresh(){try{data=await (await fetch('/api')).json();if(!el('source').length){for(const [id,n] of Object.entries(data.sources))el('source').add(new Option(n,id));el('source').add(new Option('Camera máy tính','live'));el('source').value='live';view()}el('status').textContent=camError || (cameraScoreText(data.status));el('stop').disabled=!data.live;el('start').disabled=data.live||starting;updateStage();if(!el('live').hidden)el('live').src='/preview?t='+Date.now();const sig=JSON.stringify(data.events);if(sig!==signature){signature=sig;render()}}catch{if(el('source').value==='live')showAlert(null);el('status').textContent='Mất kết nối đến server giám sát.'}}
 let starting=false,stream=null,camError='',running=false;
 const input=el('direct'), canvas=document.createElement('canvas');
 input.muted=true;input.playsInline=true;canvas.width=640;canvas.height=360;
@@ -72,6 +193,6 @@ el('start').onclick=async()=>{try{
 }catch(e){camError=({NotAllowedError:'Quyền camera bị chặn. Mở quyền trang web cạnh thanh địa chỉ và cho phép Camera.',NotFoundError:'Trình duyệt không tìm thấy webcam. Kiểm tra webcam trong ứng dụng Camera của Windows.',NotReadableError:'Webcam chưa cấp được hình. Đóng ứng dụng đang dùng camera và kiểm tra công tắc camera trên máy.'})[e.name] || 'Camera: '+e.message;release();await refresh()}finally{starting=false;await refresh()}};
 el('stop').onclick=async()=>{release();await post('stop')};
 window.addEventListener('pagehide',release);
-el('today').onclick=()=>{archive=false;render()};el('saved').onclick=()=>{archive=true;render()};el('close').onclick=()=>el('review').close();el('review').onclose=()=>el('cut').pause();
+el('close').onclick=()=>el('review').close();el('review').onclose=()=>el('cut').pause();
 for(const [id,state] of [['keep','saved'],['discard','discarded']])el(id).onclick=async()=>{const video=el('cut');video.pause();video.removeAttribute('src');video.load();try{await post(state+'/'+current.id);el('review').close()}catch{el('range').textContent='Chưa cập nhật được. Hãy thử lại.'}};(async function poll(){await refresh();setTimeout(poll,800)})();
 </script></html>

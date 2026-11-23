@@ -21,6 +21,7 @@ import numpy as np
 WEB = Path(__file__).resolve().parent
 STORE = WEB / "recordings"
 PRE, QUIET, FPS = 3, 1, 16
+LIVE_QUIET = 3
 ALERT = {"fight", "suspected"}
 
 
@@ -190,7 +191,7 @@ class Camera:
                         kind = decision
                 elif writer:
                     quiet += FPS//2
-                    if quiet >= QUIET*FPS:
+                    if quiet >= LIVE_QUIET*FPS:
                         close_clip()
             close_clip()
             if not self.status.startswith("Dừng camera:"):
@@ -294,7 +295,12 @@ def launch(windows, predict, port=0):
                 pass
 
         def do_POST(self):
-            if self.headers.get("Origin") != f"http://127.0.0.1:{self.server.server_port}":
+            local_origin = f"http://127.0.0.1:{self.server.server_port}"
+            public_origin = os.environ.get("SENTINEL_PUBLIC_ORIGIN", "").rstrip("/")
+            allowed_origins = {local_origin}
+            if public_origin.startswith("https://"):
+                allowed_origins.add(public_origin)
+            if self.headers.get("Origin") not in allowed_origins:
                 return self.send_error(403)
             if self.path=="/frame":
                 if camera.stop.is_set() or not camera.worker or not camera.worker.is_alive():

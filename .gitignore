@@ -1,4 +1,5 @@
 /.venv/
+/demo-web/.vercel-frontend/
 /.vscode/
 /dataset/
 **/__pycache__/
